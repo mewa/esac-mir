@@ -17,8 +17,9 @@ library
   hs-source-dirs:      src
   exposed-modules:     Esac, Server
   build-depends:       base >= 4.7 && < 5
+                     , mtl
                      , parsec
-                     , midi
+                     , HCodecs
                      , scotty
   default-language:    Haskell2010
 
