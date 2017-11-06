@@ -1,6 +1,7 @@
 module Main where
 
-import Esac
+import Server
+import System.Environment
 
 main :: IO ()
-main = print 1
+main = getArgs >>= serve . read . head

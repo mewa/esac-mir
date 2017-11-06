@@ -1,7 +1,8 @@
 module Esac
-    ( parseEsac
-    , parseEsac'
-    ) where
+  (
+    esacToMidi
+  , midiBytes
+  ) where
 
 import Control.Monad
 import Data.Char
@@ -9,6 +10,7 @@ import Data.Ratio
 import Text.ParserCombinators.Parsec hiding (State) 
 import Codec.Midi
 import Control.Monad.State.Lazy
+import Codec.ByteString.Builder
 
 data MidiNote = MidiNote {
   octave :: Int
@@ -41,10 +43,9 @@ midi notes tempo shortest = let
 
 makeTempo tempo = (0, TempoChange (floor $ 1000000.0 / (fromIntegral tempo / 60.0)))
 
-melodyToMidi melody = case parseEsac melody of
-                        Left e -> print e
-                        Right notes -> do
-                          exportFile "xa.mid" $ midi notes 90 8
+esacToMidi melody = parseEsac melody >>= \notes -> return (midi notes 90 8)
+
+midiBytes = toLazyByteString . buildMidi
 
 parseEsac :: String -> Either ParseError [MidiNote]
 parseEsac = parse parseMelody "(Not a valid EsAC)"

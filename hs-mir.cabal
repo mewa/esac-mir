@@ -21,6 +21,8 @@ library
                      , parsec
                      , HCodecs
                      , scotty
+                     , text
+                     , bytestring
   default-language:    Haskell2010
 
 executable hs-mir-exe
