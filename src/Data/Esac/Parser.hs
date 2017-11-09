@@ -8,6 +8,7 @@ module Data.Esac.Parser
   , lookupNote
   , readSound
   , parseEsac
+  , parseMelody
   , shortestNote
   , baseSound
   , duration
@@ -24,6 +25,26 @@ import Text.ParserCombinators.Parsec hiding (State)
 import Codec.Midi
 import Control.Monad.State.Lazy
 import Codec.ByteString.Builder
+
+data Esac = Esac {
+  baseSound :: Sound
+  , shortestNote :: Note
+  , notes :: [EsacNote]
+  } deriving (Show)
+
+data EsacKey = EsacKey {
+  signature :: String
+  , shortest :: Note
+  , base :: Sound
+  , metre :: Ratio Int
+  } deriving (Show)
+
+data EsacNote = EsacNote {
+  octave :: Int
+  , num :: Int
+  , sharpness :: PitchMod
+  , duration :: Float
+  } deriving (Show)
 
 data PitchMod = Sharp | Flat | None
   deriving (Show)
@@ -72,22 +93,13 @@ readSound s = case s of
     "A#" -> ASharp
     "B" -> B
 
-data Esac = Esac {
-  baseSound :: Sound
-  , shortestNote :: Note
-  , notes :: [EsacNote]
-  } deriving (Show)
-
-data EsacNote = EsacNote {
-  octave :: Int
-  , num :: Int
-  , sharpness :: PitchMod
-  , duration :: Float
-  } deriving (Show)
-
 parseEsac :: String -> Either ParseError Esac
 parseEsac esac = parse parseMelody "(Not a valid EsAC)" esac >>= return . Esac C (Note 4)
 
+
+{-
+melody parsing (MEL)
+-}
 parseMelody :: GenParser Char st [EsacNote]
 parseMelody = do
   (try $ do
@@ -135,3 +147,32 @@ parseOctave = do
       '-' -> oct - 1
       _ -> oct
 
+{-
+key parsing (SIG)
+-}
+
+parseKey :: GenParser Char st EsacKey
+parseKey = do
+  ssig <- parseShortSignature
+  spaces
+  shortest <- fmap Note parseShortestNote
+  spaces
+  sound <- parseBaseSound
+  spaces
+  metre <- parseMetre
+  return $ EsacKey ssig shortest sound metre
+
+parseShortSignature :: GenParser Char st String
+parseShortSignature = count 6 anyChar
+
+parseShortestNote :: GenParser Char st Int
+parseShortestNote = count 2 digit >>= return . read
+
+parseBaseSound :: GenParser Char st Sound
+parseBaseSound = manyTill (noneOf " ") (lookAhead space) >>= return . readSound
+
+parseMetre :: GenParser Char st (Ratio Int)
+parseMetre = do
+  nominator <- fmap read $ manyTill digit (char '/')
+  denominator <- fmap read $ many digit
+  return $ nominator % denominator

@@ -23,6 +23,7 @@ makeNote baseDuration note = let
   in [(0, NoteOn 0 (pitch note) 40)
      , (dur, NoteOff 0 (pitch note) 40)]
 
+makeTempo :: Tempo -> (Ticks, Message)
 makeTempo tempo = (0, TempoChange (floor $ 1000000.0 / (fromIntegral tempo / 60.0)))
 
 midiNotes :: Esac -> Int -> [MidiNote]
