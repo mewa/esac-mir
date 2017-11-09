@@ -4,7 +4,7 @@ module Server
     serve
   ) where
 
-import Data.Esac.Parser
+import Data.Esac
 import Data.Esac.Converter
 import Data.Either
 import Control.Monad.IO.Class
@@ -13,13 +13,14 @@ import Control.Monad.Reader
 import qualified Data.Text.Lazy as TL
 import qualified Data.ByteString.Lazy.Char8 as L
 import Codec.Midi
+import Data.Aeson
 
 serve :: Int -> IO ()
 serve port = scotty port $ do
   post "/esac2midi" $ do
-    esac <- fmap L.unpack body :: ActionM String
+    esac <- jsonData :: ActionM EsacJson
     liftIO $ print esac
-    case parseEsac esac of
+    case esacFromJson esac of
       Right m -> do
         setHeader "Content-Type" "audio/midi"
         raw . midiBytes . runReader (midi 90 4) $ m

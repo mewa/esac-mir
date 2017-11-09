@@ -7,10 +7,11 @@ module Data.Esac.Parser
   , lookupSound
   , lookupNote
   , readSound
-  , parseEsac
   , parseMelody
+  , parseKey
   , shortestNote
   , baseSound
+  , metre
   , duration
   , notes
   , noteDiv
@@ -18,49 +19,22 @@ module Data.Esac.Parser
   , sharpness
   ) where
 
+import Data.Esac
 import Control.Monad
 import Data.Char
 import Data.Ratio
-import Text.ParserCombinators.Parsec hiding (State) 
+import Text.ParserCombinators.Parsec hiding (State)
 import Codec.Midi
 import Control.Monad.State.Lazy
 import Codec.ByteString.Builder
 
-data Esac = Esac {
-  baseSound :: Sound
-  , shortestNote :: Note
-  , notes :: [EsacNote]
-  } deriving (Show)
-
-data EsacKey = EsacKey {
-  signature :: String
-  , shortest :: Note
-  , base :: Sound
-  , metre :: Ratio Int
-  } deriving (Show)
-
-data EsacNote = EsacNote {
-  octave :: Int
-  , num :: Int
-  , sharpness :: PitchMod
-  , duration :: Float
-  } deriving (Show)
-
-data PitchMod = Sharp | Flat | None
-  deriving (Show)
-
+pitchMod :: Char -> PitchMod
 pitchMod c = case c of
   '#' -> Sharp
   'b' -> Flat
   _ -> None
 
-data Note = Note {
-  noteDiv :: Int
-  } deriving (Show)
-
-data Sound = C | CSharp | D | DSharp | E | F | FSharp | G | GSharp | A | ASharp | B
-  deriving (Enum, Show)
-
+octaves :: [Sound]
 octaves = let
   octave = [C, D, E, F, G, A, B]
   in cycle octave
@@ -78,24 +52,22 @@ sharp = toEnum . (\x -> mod (x + 1) 12) . fromEnum
 flat :: Sound -> Sound
 flat = toEnum . (\x -> mod (x - 1) 12) . fromEnum
 
+lookupNote :: Sound -> EsacNote -> Sound
 lookupNote base note = applyPitchMod (sharpness note) . lookupSound base . num $ note
 
-readSound s = case s of
-    "C" -> C
-    "C#" -> CSharp
-    "D" -> D
-    "D#" -> DSharp
-    "E" -> E
-    "F" -> F
-    "G" -> G
-    "G#" -> GSharp
-    "A" -> A
-    "A#" -> ASharp
-    "B" -> B
-
-parseEsac :: String -> Either ParseError Esac
-parseEsac esac = parse parseMelody "(Not a valid EsAC)" esac >>= return . Esac C (Note 4)
-
+readSound :: String -> Maybe Sound
+readSound "C" = Just C
+readSound "C#" = Just CSharp
+readSound "D" = Just D
+readSound "D#" = Just DSharp
+readSound "E" = Just E
+readSound "F" = Just F
+readSound "G" = Just G
+readSound "G#" = Just GSharp
+readSound "A" = Just A
+readSound "A#" = Just ASharp
+readSound "B" = Just B
+readSound _ = Nothing
 
 {-
 melody parsing (MEL)
@@ -111,11 +83,6 @@ parseMelody = do
                     <|> parseNote
             notes <- parseMelody
             return $ note : notes)
-
-parseFreeMelody = do
-  notes <- flip sepBy spaces parseNote
-  eof
-  return $ notes
 
 parseNote :: GenParser Char st EsacNote
 parseNote = do
@@ -154,11 +121,11 @@ key parsing (SIG)
 parseKey :: GenParser Char st EsacKey
 parseKey = do
   ssig <- parseShortSignature
-  spaces
+  many1 space
   shortest <- fmap Note parseShortestNote
-  spaces
+  many1 space
   sound <- parseBaseSound
-  spaces
+  many1 space
   metre <- parseMetre
   return $ EsacKey ssig shortest sound metre
 
@@ -169,7 +136,10 @@ parseShortestNote :: GenParser Char st Int
 parseShortestNote = count 2 digit >>= return . read
 
 parseBaseSound :: GenParser Char st Sound
-parseBaseSound = manyTill (noneOf " ") (lookAhead space) >>= return . readSound
+parseBaseSound = manyTill (noneOf " ") (lookAhead space)
+  >>= \s -> case readSound s of
+              Just s -> return s
+              Nothing -> unexpected . show $ s
 
 parseMetre :: GenParser Char st (Ratio Int)
 parseMetre = do

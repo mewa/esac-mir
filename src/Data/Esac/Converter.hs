@@ -3,14 +3,20 @@ module Data.Esac.Converter
 
 import Codec.Midi
 import Codec.ByteString.Builder
+import Data.Esac as E
 import Data.Esac.Parser as E
 import Data.Midi as M
 import Control.Monad.Reader
+import Text.Parsec
+
+-- ********************
+-- ESAC -> MIDI conversion
+-- ********************
 
 midi :: Tempo -> Int -> Reader Esac Midi
 midi tempo octave = do
   esac <- ask
-  let ticksPerShortest = round $ 96 / ((/4) . fromIntegral . noteDiv . shortestNote $ esac)
+  let ticksPerShortest = round $ 96 / ((/4) . fromIntegral . noteDiv . shortestNote . esacKey $ esac)
   return $ Midi SingleTrack (TicksPerBeat 96)
     [makeTempo tempo : makeTrack ticksPerShortest (midiNotes esac octave)]
 
@@ -30,8 +36,17 @@ midiNotes :: Esac -> Int -> [MidiNote]
 midiNotes esac octave = fmap midiNote $ notes esac
   where
     midiNote note = let
-      pitch = (+ (octave * 12)) . fromEnum . lookupNote (baseSound esac) $ note
+      pitch = (+ (octave * 12)) . fromEnum . lookupNote (baseSound . esacKey $ esac) $ note
       in MidiNote pitch (E.duration note)
 
 midiBytes = toLazyByteString . buildMidi
   
+-- ********************
+-- ESAC <-> JSON conversion
+-- ********************
+
+esacFromJson :: EsacJson -> Either ParseError Esac
+esacFromJson json = do
+  melody <- parse parseMelody "Invalid melody (MEL)" . melody $ json
+  key <- parse parseKey "Invalid key (KEY)" . E.key $ json
+  return $ Esac key melody
