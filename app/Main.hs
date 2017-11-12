@@ -4,4 +4,4 @@ import Server
 import System.Environment
 
 main :: IO ()
-main = getArgs >>= serve . read . head
+main = getEnv "PORT" >>= serve . read
