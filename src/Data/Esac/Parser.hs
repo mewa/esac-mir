@@ -9,6 +9,7 @@ module Data.Esac.Parser
   , readSound
   , parseMelody
   , parseKey
+  , parseOctave
   , shortestNote
   , baseSound
   , metre
