@@ -53,3 +53,17 @@ esacFromJson json = do
   melody <- parse parseMelody "Invalid melody (MEL)" . melody $ json
   key <- parse parseKey "Invalid key (KEY)" . E.key $ json
   return $ Esac key melody
+
+-- ********************
+-- ESAC -> String
+-- ********************
+
+esacMelody :: Int -> [EsacNote] -> String
+esacMelody base = (++ " //") . join . fmap showEsacNote
+  where
+    showEsacNote (EsacNote oct num sh dur) = let
+      octave = if oct < base then
+              replicate (base - oct) '-'
+            else
+              replicate (oct - base) '+'
+      in octave ++ show (num + 1) ++ show sh

@@ -17,6 +17,7 @@ module Data.Esac.Parser
   , noteDiv
   , applyPitchMod
   , sharpness
+  , parse
   ) where
 
 import Data.Esac

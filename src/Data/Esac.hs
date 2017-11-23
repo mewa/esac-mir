@@ -36,13 +36,17 @@ data EsacKey = EsacKey {
 
 data EsacNote = EsacNote {
   octave :: Int
-  , num :: Int
+  , num :: Int -- num is 0 indexed (as opposed to 1 in the textual notation)
   , sharpness :: PitchMod
   , duration :: Float
   } deriving (Show)
 
 data PitchMod = Sharp | Flat | None
-  deriving (Show)
+
+instance Show PitchMod where
+  show Sharp = "#"
+  show Flat = "b"
+  show _ = ""
 
 data Note = Note {
   noteDiv :: Int
