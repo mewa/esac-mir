@@ -13,15 +13,18 @@ import Text.Parsec
 -- ESAC -> MIDI conversion
 -- ********************
 
-midi :: Tempo -> Int -> Reader Esac Midi
-midi tempo octave = do
+midiFromEsac :: Tempo -> Int -> Reader Esac Midi
+midiFromEsac tempo octave = do
   esac <- ask
   let ticksPerShortest = round $ 96 / ((/4) . fromIntegral . noteDiv . shortestNote . esacKey $ esac)
   return $ Midi SingleTrack (TicksPerBeat 96)
     [makeTempo tempo : makeTrack ticksPerShortest (midiNotes esac octave)]
 
 makeTrack :: Ticks -> [MidiNote] -> Track Ticks
-makeTrack baseDuration notes = join $ fmap (makeNote baseDuration) notes
+makeTrack baseDuration notes = let
+  trackNotes = join $ fmap (makeNote baseDuration) notes
+  track = trackNotes ++ [(0, TrackEnd)]
+  in track
 
 makeNote :: Ticks -> MidiNote -> Track Ticks
 makeNote baseDuration note = let

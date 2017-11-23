@@ -25,6 +25,6 @@ serve port = scotty port $ do
     case esacFromJson esac of
       Right m -> do
         setHeader "Content-Type" "audio/midi"
-        raw . midiBytes . runReader (midi tempo octave) $ m
+        raw . midiBytes . runReader (midiFromEsac tempo octave) $ m
       Left e ->
         text . TL.pack . show $ e
