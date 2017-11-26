@@ -39,7 +39,11 @@ midiNotes :: Esac -> Int -> [MidiNote]
 midiNotes esac octave = fmap midiNote $ notes esac
   where
     midiNote note = let
-      pitch = (+ (octave * 12)) . fromEnum . lookupNote (baseSound . esacKey $ esac) $ note
+      base@(Sound baseSnd baseMod) = baseSound . esacKey $ esac
+      baseInt = makeInterval baseSnd
+      intSnd@(Sound esacSound pm) = addInterval base (interval note)
+      disp = intervalDisplacement baseInt intSnd
+      pitch = (+ (octave * 12)) disp
       in MidiNote pitch (E.duration note)
 
 midiBytes = toLazyByteString . buildMidi
@@ -61,9 +65,9 @@ esacFromJson json = do
 esacMelody :: Int -> [EsacNote] -> String
 esacMelody base = (++ " //") . join . fmap showEsacNote
   where
-    showEsacNote (EsacNote oct num sh dur) = let
+    showEsacNote (EsacNote oct (Interval interval) sh dur) = let
       octave = if oct < base then
               replicate (base - oct) '-'
             else
               replicate (oct - base) '+'
-      in octave ++ show (num + 1) ++ show sh
+      in octave ++ show (interval) ++ show sh

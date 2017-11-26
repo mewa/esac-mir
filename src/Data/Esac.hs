@@ -84,6 +84,20 @@ addInterval s@(Sound bs m) (Interval interval) = let
   customInterval = makeInterval bs
   in Sound (customInterval !! (interval - 1)) m
 
+addMidiKey :: Sound -> Int -> Sound
+addMidiKey to@(Sound baseSound mod) key = let
+  baseInterval = (makeInterval baseSound)
+  modVal = fromEnum mod
+  ret = foldl reduceMidi (to, key) baseInterval
+  in fst ret
+  where
+    reduceMidi (t@(Sound snd mod), key) e = let
+      intval = intervalNoteValue e
+      diff = key - intval
+      in if diff <= 0
+         then (Sound e (toEnum $ fromEnum mod + diff), diff)
+         else (t, diff)
+
 intervalDisplacement :: [BaseSound] -> Sound -> Int
 intervalDisplacement interval to@(Sound base mod) = let
   disp = foldl (\val n -> val + intervalNoteValue n) 0 $ takeWhile (base /=) $ interval
