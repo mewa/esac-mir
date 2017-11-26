@@ -36,15 +36,14 @@ makeTempo :: Tempo -> (Ticks, Message)
 makeTempo tempo = (0, TempoChange (floor $ 1000000.0 / (fromIntegral tempo / 60.0)))
 
 midiNotes :: Esac -> Int -> [MidiNote]
-midiNotes esac octave = fmap midiNote $ notes esac
-  where
-    midiNote note = let
-      base@(Sound baseSnd baseMod) = baseSound . esacKey $ esac
-      baseInt = makeInterval baseSnd
-      intSnd@(Sound esacSound pm) = addInterval base (interval note)
-      disp = intervalDisplacement baseInt intSnd
-      pitch = (+ (octave * 12)) disp
-      in MidiNote pitch (E.duration note)
+midiNotes esac octave = fmap (mkMidiNote (baseSound . esacKey $ esac) octave) $ notes esac
+
+mkMidiNote :: Sound -> Int -> EsacNote -> MidiNote
+mkMidiNote base octave note = let
+  intSnd@(Sound esacSound pm) = addInterval base (interval note)
+  disp = intervalDisplacement base intSnd
+  pitch = (octave * 12) + disp
+  in MidiNote pitch (E.duration note)
 
 midiBytes = toLazyByteString . buildMidi
   

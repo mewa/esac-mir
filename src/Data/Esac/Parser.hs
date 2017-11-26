@@ -54,7 +54,7 @@ readSound "A" = Just $ Sound A None
 readSound "A#" = Just $ Sound A Sharp
 readSound "Bb" = Just $ Sound B Flat
 readSound "B" = Just $ Sound B None
-readSound "B#" = Just $ Sound B Sharp
+-- readSound "B#" = Just $ Sound B Sharp
 readSound _ = Nothing
 
 {-
@@ -88,9 +88,10 @@ parseNoteDuration = do
 
 parseNoteInterval :: GenParser Char st (Interval, PitchMod)
 parseNoteInterval = do
-  val <- oneOf ['0', '1', '2', '3', '4', '6', '7']
+  val <- fmap digitToInt digit -- oneOf ['0', '1', '2', '3', '4', '6', '7']
+  guard (val >= 0 && val <= 7) <?> ("Invalid interval value: " ++ show val ++ ". Must be in range [0; 7]")
   mod <- option ' ' (try $ oneOf "#b")
-  return $ (Interval $ digitToInt val, pitchMod mod)
+  return $ (Interval $ val, pitchMod mod)
       
 parseOctave :: GenParser Char st Int
 parseOctave = do
