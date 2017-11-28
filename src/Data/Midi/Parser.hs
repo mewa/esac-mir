@@ -36,9 +36,15 @@ esacFromMidiBytes tempo octave midiData = do
       melody = filter (isNote . snd) track
       (TicksPerBeat ticksPerBeat) = timeDiv midi
       midiNotes = midiNotesFromTrack ticksPerBeat melody
-      shortest = Note 4
+      shortest = findShortestNote midiNotes
       (baseSound, esacNotes) = esacNotesFromMidi octave midiNotes
   return $ Esac (EsacKey "stub sig" shortest baseSound (3 % 4)) esacNotes
+
+
+findShortestNote :: [MidiNote] -> Note
+findShortestNote notes = let
+  timeline = fmap M.duration notes
+  in Note $ (4 *) . round . minimum . filter (/= 0) $ timeline
 
 chunks _ [] = []
 chunks n lst = let (chunk, rest) = splitAt n lst
