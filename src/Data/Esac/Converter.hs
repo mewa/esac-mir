@@ -13,15 +13,18 @@ import Text.Parsec
 -- ESAC -> MIDI conversion
 -- ********************
 
-midi :: Tempo -> Int -> Reader Esac Midi
-midi tempo octave = do
+midiFromEsac :: Tempo -> Int -> Reader Esac Midi
+midiFromEsac tempo octave = do
   esac <- ask
   let ticksPerShortest = round $ 96 / ((/4) . fromIntegral . noteDiv . shortestNote . esacKey $ esac)
   return $ Midi SingleTrack (TicksPerBeat 96)
     [makeTempo tempo : makeTrack ticksPerShortest (midiNotes esac octave)]
 
 makeTrack :: Ticks -> [MidiNote] -> Track Ticks
-makeTrack baseDuration notes = join $ fmap (makeNote baseDuration) notes
+makeTrack baseDuration notes = let
+  trackNotes = join $ fmap (makeNote baseDuration) notes
+  track = trackNotes ++ [(0, TrackEnd)]
+  in track
 
 makeNote :: Ticks -> MidiNote -> Track Ticks
 makeNote baseDuration note = let
@@ -33,11 +36,14 @@ makeTempo :: Tempo -> (Ticks, Message)
 makeTempo tempo = (0, TempoChange (floor $ 1000000.0 / (fromIntegral tempo / 60.0)))
 
 midiNotes :: Esac -> Int -> [MidiNote]
-midiNotes esac octave = fmap midiNote $ notes esac
-  where
-    midiNote note = let
-      pitch = (+ (octave * 12)) . fromEnum . lookupNote (baseSound . esacKey $ esac) $ note
-      in MidiNote pitch (E.duration note)
+midiNotes esac octave = fmap (mkMidiNote (baseSound . esacKey $ esac) octave) $ notes esac
+
+mkMidiNote :: Sound -> Int -> EsacNote -> MidiNote
+mkMidiNote base octave note = let
+  intSnd@(Sound esacSound pm) = addInterval base (interval note)
+  disp = intervalDisplacement base intSnd
+  pitch = (octave * 12) + disp
+  in MidiNote pitch (E.duration note)
 
 midiBytes = toLazyByteString . buildMidi
   
@@ -50,3 +56,17 @@ esacFromJson json = do
   melody <- parse parseMelody "Invalid melody (MEL)" . melody $ json
   key <- parse parseKey "Invalid key (KEY)" . E.key $ json
   return $ Esac key melody
+
+-- ********************
+-- ESAC -> String
+-- ********************
+
+esacMelody :: Int -> [EsacNote] -> String
+esacMelody base = (++ " //") . join . fmap showEsacNote
+  where
+    showEsacNote (EsacNote oct (Interval interval) sh dur) = let
+      octave = if oct < base then
+              replicate (base - oct) '-'
+            else
+              replicate (oct - base) '+'
+      in octave ++ show (interval) ++ show sh

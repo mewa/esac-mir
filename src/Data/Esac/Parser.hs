@@ -4,19 +4,18 @@ module Data.Esac.Parser
   , EsacNote
   , Note
   , Sound
-  , lookupSound
-  , lookupNote
   , readSound
   , parseMelody
   , parseKey
+  , parseOctave
   , shortestNote
   , baseSound
   , metre
   , duration
   , notes
   , noteDiv
-  , applyPitchMod
   , sharpness
+  , parse
   ) where
 
 import Data.Esac
@@ -34,39 +33,28 @@ pitchMod c = case c of
   'b' -> Flat
   _ -> None
 
-octaves :: [Sound]
-octaves = let
-  octave = [C, D, E, F, G, A, B]
-  in cycle octave
-
-lookupSound :: Sound -> Int -> Sound
-lookupSound base sound = head . drop (fromEnum base + sound) $ octaves
-
-applyPitchMod Sharp = sharp
-applyPitchMod Flat = flat
-applyPitchMod _ = id
-
-sharp :: Sound -> Sound
-sharp = toEnum . (\x -> mod (x + 1) 12) . fromEnum
-
-flat :: Sound -> Sound
-flat = toEnum . (\x -> mod (x - 1) 12) . fromEnum
-
-lookupNote :: Sound -> EsacNote -> Sound
-lookupNote base note = applyPitchMod (sharpness note) . lookupSound base . num $ note
-
 readSound :: String -> Maybe Sound
-readSound "C" = Just C
-readSound "C#" = Just CSharp
-readSound "D" = Just D
-readSound "D#" = Just DSharp
-readSound "E" = Just E
-readSound "F" = Just F
-readSound "G" = Just G
-readSound "G#" = Just GSharp
-readSound "A" = Just A
-readSound "A#" = Just ASharp
-readSound "B" = Just B
+readSound "Cb" = Just $ Sound C Flat
+readSound "C" = Just $ Sound C None
+readSound "C#" = Just $ Sound C Sharp
+readSound "Db" = Just $ Sound D Flat
+readSound "D" = Just $ Sound D None
+readSound "D#" = Just $ Sound D Sharp
+readSound "Eb" = Just $ Sound E Flat
+readSound "E" = Just $ Sound E None
+readSound "E#" = Just $ Sound E Sharp
+readSound "Fb" = Just $ Sound F Flat
+readSound "F" = Just $ Sound F None
+readSound "F#" = Just $ Sound F Sharp
+readSound "Gb" = Just $ Sound G Flat
+readSound "G" = Just $ Sound G None
+readSound "G#" = Just $ Sound G Sharp
+readSound "Ab" = Just $ Sound A Flat
+readSound "A" = Just $ Sound A None
+readSound "A#" = Just $ Sound A Sharp
+readSound "Bb" = Just $ Sound B Flat
+readSound "B" = Just $ Sound B None
+-- readSound "B#" = Just $ Sound B Sharp
 readSound _ = Nothing
 
 {-
@@ -88,9 +76,9 @@ parseNote :: GenParser Char st EsacNote
 parseNote = do
   skipMany $ char '^'
   oct <- parseOctave
-  pit <- parseNotePitch
+  (interval, pitchMod) <- parseNoteInterval
   dur <- parseNoteDuration
-  return $ EsacNote oct (fst pit) (snd pit) dur
+  return $ EsacNote oct interval pitchMod dur
 
 parseNoteDuration :: GenParser Char st Float
 parseNoteDuration = do
@@ -98,11 +86,12 @@ parseNoteDuration = do
   dot <- option 0 (try $ char '.' >> return 0.5)
   return $ fromIntegral 2^(length len) + dot
 
-parseNotePitch :: GenParser Char st (Int, PitchMod)
-parseNotePitch = do
-  val <- digit
+parseNoteInterval :: GenParser Char st (Interval, PitchMod)
+parseNoteInterval = do
+  val <- fmap digitToInt digit -- oneOf ['0', '1', '2', '3', '4', '6', '7']
+  guard (val >= 0 && val <= 7) <?> ("Invalid interval value: " ++ show val ++ ". Must be in range [0; 7]")
   mod <- option ' ' (try $ oneOf "#b")
-  return $ (digitToInt val - 1, pitchMod mod)
+  return $ (Interval $ val, pitchMod mod)
       
 parseOctave :: GenParser Char st Int
 parseOctave = do
