@@ -26,6 +26,7 @@ library
                      , base >= 4.7 && < 5
                      , bytestring
                      , containers >= 0.5.7.1
+                     , http-types
                      , mtl
                      , parsec
                      , scotty

@@ -44,6 +44,8 @@ data EsacNote = EsacNote {
 data Interval = Interval Int
   deriving (Show, Eq)
 
+fromInterval (Interval val) = val
+
 data PitchMod = Sharp | Flat | None
   deriving (Eq)
 
@@ -112,6 +114,16 @@ intervalDisplacement baseSound to@(Sound base mod) = let
   disp = length $ takeWhile (to /=) $ interval
   in disp
 
+halftones :: Sound -> Int
+halftones (Sound base mod) = let
+  halftones = intervalHalftones (Interval $ fromEnum base + 1)
+  in addMod halftones mod
+
+addMod :: Int -> PitchMod -> Int
+addMod note Sharp = note + 1
+addMod note Flat = note - 1
+addMod note _ = note
+
 intervalNoteValue :: BaseSound -> Int
 intervalNoteValue E = 1
 intervalNoteValue B = 1
@@ -127,6 +139,9 @@ applyPitchMod _ s = s
 
 intervalValues :: [Int]
 intervalValues = [2, 2, 1, 2, 2, 2, 1]
+
+intervalHalftones :: Interval -> Int
+intervalHalftones interval = sum $ take (fromInterval interval - 1) intervalValues
 
 -- +W,W,H,W,W,W,H
 -- 1,2,3,4,5,6,7

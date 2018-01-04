@@ -39,10 +39,12 @@ midiNotes :: Esac -> Int -> [MidiNote]
 midiNotes esac octave = fmap (mkMidiNote (baseSound . esacKey $ esac) octave) $ notes esac
 
 mkMidiNote :: Sound -> Int -> EsacNote -> MidiNote
-mkMidiNote base octave note = let
+mkMidiNote base baseOctave note = let
   intSnd@(Sound esacSound pm) = addInterval base (interval note)
-  disp = intervalDisplacement base intSnd
-  pitch = (octave * 12) + disp
+  baseSound = halftones base
+  noteHalftones = addMod (intervalHalftones (interval note)) $ sharpness note
+  octave = baseOctave + E.octave note
+  pitch = (octave * 12) + baseSound + noteHalftones
   in MidiNote pitch (E.duration note)
 
 midiBytes = toLazyByteString . buildMidi

@@ -14,6 +14,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.ByteString.Lazy.Char8 as L
 import Codec.Midi
 import Data.Aeson
+import Network.HTTP.Types.Status
 
 serve :: Int -> IO ()
 serve port = scotty port $ do
@@ -26,5 +27,6 @@ serve port = scotty port $ do
       Right m -> do
         setHeader "Content-Type" "audio/midi"
         raw . midiBytes . runReader (midiFromEsac tempo octave) $ m
-      Left e ->
+      Left e -> do
+        status badRequest400
         text . TL.pack . show $ e
