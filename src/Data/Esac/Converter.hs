@@ -42,7 +42,7 @@ mkMidiNote :: Sound -> Int -> EsacNote -> MidiNote
 mkMidiNote base baseOctave note = let
   intSnd@(Sound esacSound pm) = addInterval base (interval note)
   baseSound = halftones base
-  noteHalftones = intervalHalftones (interval note)
+  noteHalftones = addMod (intervalHalftones (interval note)) $ sharpness note
   octave = baseOctave + E.octave note
   pitch = (octave * 12) + baseSound + noteHalftones
   in MidiNote pitch (E.duration note)
