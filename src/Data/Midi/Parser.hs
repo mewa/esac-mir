@@ -62,26 +62,12 @@ esacNotesFromMidi octave midiNotes@(baseNote:_) = let
   esacNotes = fmap (makeEsacNote octave baseSound) midiNotes
   in (baseSound, esacNotes)
 
-
 -- Take arbitrary base octave (EsacNote octave is relative to this value) and base sound and create EsacNote from MidiNote
 makeEsacNote :: Int -> Sound -> MidiNote -> EsacNote
 makeEsacNote octave base@(Sound baseSound pmod) (MidiNote pit dur) = let
   noteOctave = div pit 12
   noteNum = mod pit 12
-  midiSound@(Sound baseNote _) = addMidiKey base noteNum
-  shouldRun (t, _, _) = t
-  displ = scanl foldInt (True, noteNum, 1) intervalValues
-  disp@(_, isSharp, int) = head $ dropWhile (shouldRun) displ
-  sharpness = case mod isSharp 2 of
-                0 -> None
-                1 -> Sharp
-                _ -> error "reached bottom! (invalid interval offsets?)"
-  foldInt id@(run, key, int) off = if run && key > 0 && key - off >= 0
-                           then
-                             (run, key - off, int + 1)
-                           else
-                             (False, key, int)
-
+  (int, sharpness) = intervalFromNum noteNum
   in EsacNote (noteOctave - octave) (Interval int) sharpness dur
 
 midiNotesFromTrack :: Ticks -> Track Ticks -> [MidiNote]

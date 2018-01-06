@@ -114,6 +114,12 @@ intervalDisplacement baseSound to@(Sound base mod) = let
   disp = length $ takeWhile (to /=) $ interval
   in disp
 
+intervalFromNum :: Int -> (Int, PitchMod)
+intervalFromNum num = let
+  ints = zip [1..] $ scanl (+) 0 intervalValues
+  (int, val) = head $ dropWhile ((< num) . snd) ints
+  in (int, toEnum $ num - val)
+
 halftones :: Sound -> Int
 halftones (Sound base mod) = let
   halftones = intervalHalftones (Interval $ fromEnum base + 1)

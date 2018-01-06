@@ -63,12 +63,12 @@ esacFromJson json = do
 -- ESAC -> String
 -- ********************
 
-esacMelody :: Int -> [EsacNote] -> String
-esacMelody base = (++ " //") . join . fmap showEsacNote
+esacMelody :: [EsacNote] -> String
+esacMelody = (++ " //") . join . fmap showEsacNote
   where
     showEsacNote (EsacNote oct (Interval interval) sh dur) = let
-      octave = if oct < base then
-              replicate (base - oct) '-'
+      octave = if oct < 0 then
+              replicate (-oct) '-'
             else
-              replicate (oct - base) '+'
+              replicate oct '+'
       in octave ++ show (interval) ++ show sh
