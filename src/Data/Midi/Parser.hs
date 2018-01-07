@@ -38,8 +38,23 @@ esacFromMidiBytes baseSound tempo octave midiData = do
       midiNotes = midiNotesFromTrack ticksPerBeat melody
       shortest = findShortestNote midiNotes
       esacNotes = esacNotesFromMidi baseSound octave midiNotes
-      signature = concat . fmap show . take 6 $ (fmap (fromInterval . interval) esacNotes)
-  return $ Esac (EsacKey signature shortest baseSound (3 % 4)) esacNotes
+      signature = makeSignature baseSound metre shortest esacNotes
+      metre = (3 % 4)
+  return $ Esac (EsacKey signature shortest baseSound metre) esacNotes
+
+makeSignature :: Sound -> Ratio Int -> Note -> [EsacNote] -> String
+makeSignature (Sound baseSound mod) metre (Note val) esacNotes = let
+  sig = padr 6 "00000"
+  sh = take 2 . reverse . ("00" ++) . reverse . show $ val
+  snd = padl 2 $ show baseSound ++ show mod
+  in sig ++ " " ++ sh ++ " " ++ snd ++ " " ++ show (numerator metre) ++ "/" ++ show (denominator metre) 
+
+padl :: Int -> String -> String
+padl n s = let
+  padding = take (n - length s) $ repeat ' '
+  in padding ++ s
+
+padr n s = reverse . padl n . reverse $ s
 
 findShortestNote :: [MidiNote] -> Note
 findShortestNote notes = let

@@ -22,6 +22,10 @@ instance ToJSON EsacJson
 
 instance FromJSON EsacJson
 
+defaultEsacJson = EsacJson "" "" "" "" "" "" "" ""
+
+esacMelodyJson melody key = defaultEsacJson { melody = melody, key = key }
+
 data Esac = Esac {
   esacKey :: EsacKey
   , notes :: [EsacNote]
