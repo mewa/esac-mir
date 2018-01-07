@@ -29,17 +29,32 @@ exampleMidi = runReader (midiFromEsac 90 5) $ exampleEsac
 exampleMidiBytes :: BS.ByteString
 exampleMidiBytes = midiBytes $ exampleMidi
 
-esacFromMidiBytes :: Tempo -> Int -> BS.ByteString -> Either String Esac
-esacFromMidiBytes tempo octave midiData = do
+esacFromMidiBytes :: Sound -> Tempo -> Int -> BS.ByteString -> Either String Esac
+esacFromMidiBytes baseSound tempo octave midiData = do
   midi <- fmap toSingleTrack $ M.runParser parseMidi midiData
   let track = Prelude.head . tracks $ midi
       melody = filter (isNote . snd) track
       (TicksPerBeat ticksPerBeat) = timeDiv midi
       midiNotes = midiNotesFromTrack ticksPerBeat melody
       shortest = findShortestNote midiNotes
-      (baseSound, esacNotes) = esacNotesFromMidi octave midiNotes
-  return $ Esac (EsacKey "stub sig" shortest baseSound (3 % 4)) esacNotes
+      esacNotes = esacNotesFromMidi baseSound octave midiNotes
+      signature = makeSignature baseSound metre shortest esacNotes
+      metre = (3 % 4)
+  return $ Esac (EsacKey signature shortest baseSound metre) esacNotes
 
+makeSignature :: Sound -> Ratio Int -> Note -> [EsacNote] -> String
+makeSignature (Sound baseSound mod) metre (Note val) esacNotes = let
+  sig = padr 6 "00000"
+  sh = take 2 . reverse . ("00" ++) . reverse . show $ val
+  snd = padl 2 $ show baseSound ++ show mod
+  in sig ++ " " ++ sh ++ " " ++ snd ++ " " ++ show (numerator metre) ++ "/" ++ show (denominator metre) 
+
+padl :: Int -> String -> String
+padl n s = let
+  padding = take (n - length s) $ repeat ' '
+  in padding ++ s
+
+padr n s = reverse . padl n . reverse $ s
 
 findShortestNote :: [MidiNote] -> Note
 findShortestNote notes = let
@@ -53,35 +68,21 @@ chunks n lst = let (chunk, rest) = splitAt n lst
 data TrackState = TrackState { time :: Ticks, activeNotes :: Map.Map Key Ticks }
   deriving (Show)
 
-esacNotesFromMidi :: Int -> [MidiNote] -> (Sound, [EsacNote])
-esacNotesFromMidi octave midiNotes@(baseNote:_) = let
+esacNotesFromMidi :: Sound -> Int -> [MidiNote] -> [EsacNote]
+esacNotesFromMidi baseSound octave midiNotes@(baseNote:_) = let
   baseSoundValue = mod (pitch baseNote) 12
   baseKey = baseSoundValue + 12 * octave
-  -- Midi 0 key = C, hence static offset (sound)
-  baseSound = Sound C None
   esacNotes = fmap (makeEsacNote octave baseSound) midiNotes
-  in (baseSound, esacNotes)
-
+  in esacNotes
 
 -- Take arbitrary base octave (EsacNote octave is relative to this value) and base sound and create EsacNote from MidiNote
 makeEsacNote :: Int -> Sound -> MidiNote -> EsacNote
 makeEsacNote octave base@(Sound baseSound pmod) (MidiNote pit dur) = let
-  noteOctave = div pit 12
-  noteNum = mod pit 12
-  midiSound@(Sound baseNote _) = addMidiKey base noteNum
-  shouldRun (t, _, _) = t
-  displ = scanl foldInt (True, noteNum, 1) intervalValues
-  disp@(_, isSharp, int) = head $ dropWhile (shouldRun) displ
-  sharpness = case mod isSharp 2 of
-                0 -> None
-                1 -> Sharp
-                _ -> error "reached bottom! (invalid interval offsets?)"
-  foldInt id@(run, key, int) off = if run && key > 0 && key - off >= 0
-                           then
-                             (run, key - off, int + 1)
-                           else
-                             (False, key, int)
-
+  noteNumAtBase = pit - halftones base
+  noteOctave = div noteNumAtBase 12
+  noteNum = mod noteNumAtBase 12
+  -- Interval has to be calculated as offset from base
+  (int, sharpness) = intervalFromNum noteNum
   in EsacNote (noteOctave - octave) (Interval int) sharpness dur
 
 midiNotesFromTrack :: Ticks -> Track Ticks -> [MidiNote]

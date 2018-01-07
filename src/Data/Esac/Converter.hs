@@ -3,6 +3,7 @@ module Data.Esac.Converter
 
 import Codec.Midi
 import Codec.ByteString.Builder
+import Data.Aeson
 import Data.Esac as E
 import Data.Esac.Parser as E
 import Data.Midi as M
@@ -63,12 +64,18 @@ esacFromJson json = do
 -- ESAC -> String
 -- ********************
 
-esacMelody :: Int -> [EsacNote] -> String
-esacMelody base = (++ " //") . join . fmap showEsacNote
+esacMelody :: [EsacNote] -> String
+esacMelody = (++ " //") . join . fmap showEsacNote
   where
     showEsacNote (EsacNote oct (Interval interval) sh dur) = let
-      octave = if oct < base then
-              replicate (base - oct) '-'
+      octave = if oct < 0 then
+              replicate (-oct) '-'
             else
-              replicate (oct - base) '+'
+              replicate oct '+'
       in octave ++ show (interval) ++ show sh
+
+esacToJson :: Esac -> EsacJson
+esacToJson esac = let
+  melody = esacMelody . notes $ esac
+  signature = shortSignature . esacKey $ esac
+  in esacMelodyJson melody signature

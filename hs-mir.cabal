@@ -31,6 +31,7 @@ library
                      , parsec
                      , scotty
                      , text
+                     , wai-extra
   default-language:    Haskell2010
 
 executable hs-mir-exe
