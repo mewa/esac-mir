@@ -1,7 +1,7 @@
 import Test.Hspec
 import Test.QuickCheck
 import Data.Esac.Parser
-import Data.Esac
+import Data.Esac as E
 import Data.Esac.Converter
 import Control.Monad.Reader
 import Data.Midi.Parser
@@ -38,7 +38,7 @@ esacParser = describe "ESAC parser" $ do
               melody = case parse parseMelody ("error while parsing: " ++ esacMel) esacMel of
                 Left err -> error $ show err
                 Right r -> r
-          in esacMelody 0 melody === esacMel
+          in esacMelody melody === esacMel
 
     it "doesn't parse incorrect melody" $ do
       forAll (listOf1 $ choose (8, (9 :: Int))) $
@@ -46,6 +46,27 @@ esacParser = describe "ESAC parser" $ do
           let esacMel = (concat (fmap show melodyNotes)) ++ " //"
               melody = parse parseMelody "test err" esacMel
           in melody `shouldSatisfy` isLeft
+
+  context "raw ESAC parser" $ do
+    it "parses example esac" $ do
+      let rawEsac = "KOLBERG\n"
+            ++ "CUT[Wlazl kotek na plotek]\n"
+            ++ "REG[z Warszawy]\r\n"
+            ++ "TRD[Oskar Kolberg, Opera omnia, p. 448]\r\n"
+            ++ "KEY[K0466T 08  G 3/4 ]\n"
+            ++ "MEL[5_3_3_  4_2_2_  135__\n"
+            ++ "    5_3_3_  4_2_2_  131__ //]\n"
+      case parse parseRawEsac "" rawEsac of
+        Left err -> error $ show err
+        Right esac -> esac === defaultEsacJson {
+          name = "KOLBERG"
+          , title = "Wlazl kotek na plotek"
+          , region = "z Warszawy"
+          , source = "Oskar Kolberg, Opera omnia, p. 448"
+          , E.key = "K0466T 08  G 3/4 "
+          , melody = "5_3_3_  4_2_2_  135__\n"
+            ++ "    5_3_3_  4_2_2_  131__ //"
+          }
 
 soundOps = describe "Sound interval" $ do
   it "creates C interval" $ do
@@ -67,25 +88,6 @@ soundOps = describe "Sound interval" $ do
         in fullInt `shouldBe` expectedInt
 
 midiConverter = describe "ESAC-MIDI converter" $ do
-  
-  context "MIDI -> ESAC" $ do
-
-    it "MidiNote -> EsacNote" $ do
-      let int = makeFullInterval $ Sound C None
-      forAll (choose (0, 11 :: Int)) $
-        \num ->
-
-          forAll (choose (0, 11 :: Int)) $
-          \bsIndex ->
-
-            forAll (choose (0, 10 :: Int)) $
-            \octave ->
-
-              let baseSound = int !! bsIndex
-                  midiNote = MidiNote (octave * 12 + num) 1
-                  esacNote = makeEsacNote octave baseSound midiNote
-              in addMidiKey baseSound num === soundFromEsacNote baseSound esacNote
-
     it "MIDI -> ESAC -> MIDI = identity" $ do
       forAll (listOf1 $ choose (1, (7 :: Int))) $
         \melodyNotes ->
@@ -102,7 +104,7 @@ midiConverter = describe "ESAC-MIDI converter" $ do
               exampleMidi = runReader (midiFromEsac 90 5) $ exampleEsac
 
               -- get converted Esac from example midi
-              (Right convertedEsac) = esacFromMidiBytes 90 5 $ midiBytes exampleMidi
+              (Right convertedEsac) = esacFromMidiBytes (Sound C None) 90 5 $ midiBytes exampleMidi
 
               -- get Midi from converted esac
               newMidi = runReader (midiFromEsac 90 5) convertedEsac
