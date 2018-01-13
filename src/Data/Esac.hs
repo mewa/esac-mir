@@ -16,7 +16,7 @@ data EsacJson = EsacJson {
   , key :: String
   , melody :: String
   , remarks :: String
-  } deriving (Show, Generic)
+  } deriving (Show, Generic, Eq)
 
 instance ToJSON EsacJson
 

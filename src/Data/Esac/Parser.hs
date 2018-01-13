@@ -16,9 +16,11 @@ module Data.Esac.Parser
   , noteDiv
   , sharpness
   , parse
+  , parseRawEsac
   ) where
 
-import Data.Esac
+import qualified Data.Map as Map
+import Data.Esac as E
 import Control.Monad
 import Data.Char
 import Data.Ratio
@@ -26,6 +28,7 @@ import Text.ParserCombinators.Parsec hiding (State)
 import Codec.Midi
 import Control.Monad.State.Lazy
 import Codec.ByteString.Builder
+import Text.Parsec.Char
 
 pitchMod :: Char -> PitchMod
 pitchMod c = case c of
@@ -135,3 +138,26 @@ parseMetre = do
   nominator <- fmap read $ manyTill digit (char '/')
   denominator <- fmap read $ many digit
   return $ nominator % denominator
+
+parseRawEsac :: GenParser Char st EsacJson
+parseRawEsac = do
+  name <- manyTill anyChar endOfLine
+  fields <- fmap Map.fromList $ many1 esacField
+  let getField = maybe "" id . flip Map.lookup fields
+  return $ EsacJson {
+    name = name
+    , title = getField "CUT"
+    , source = getField "TRD"
+    , region = getField "REG"
+    , signature = getField "SIG"
+    , E.key = getField "KEY"
+    , melody = getField "MEL"
+    , remarks = getField "REM"
+    }
+
+esacField :: GenParser Char st (String, String)
+esacField = do
+  name <- manyTill (noneOf "[]") (lookAhead . char $ '[')
+  content <- between (char '[') (char ']') (many $ noneOf "[]")
+  endOfLine
+  return (name, content)
