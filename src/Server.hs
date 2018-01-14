@@ -51,6 +51,14 @@ serve port = scotty port $ do
         status badRequest400
         text . TL.pack . show $ e
       Right mel -> json mel
+  post "/esacjson" $ do
+    esac <- fmap (LC.unpack . fileContent . snd . head) files
+    case parse parseRawEsac "" esac of
+      Left e -> do
+        status badRequest400
+        text . TL.pack . show $ e
+      Right esac -> do
+        json esac
 
 base64midi = mappend "data:audio/midi;base64," . Base64.encode
 
