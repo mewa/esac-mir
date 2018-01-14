@@ -27,7 +27,7 @@ serve :: Int -> IO ()
 serve port = scotty port $ do
   post "/esac2midi" $ do
     tempo <- rescue (param "tempo") (const $ return 90) :: ActionM Int
-    octave <- rescue (param "octave") (const $ return 4) :: ActionM Int
+    octave <- rescue (param "octave") (const $ return 5) :: ActionM Int
     format <- rescue (param "format") (const $ return "") :: ActionM String
     esac <- jsonData :: ActionM EsacJson
     liftIO $ print esac
