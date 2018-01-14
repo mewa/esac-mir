@@ -24,6 +24,7 @@ library
   build-depends:       HCodecs
                      , aeson >= 1.1.2.0
                      , base >= 4.7 && < 5
+                     , base64-bytestring
                      , bytestring
                      , containers >= 0.5.7.1
                      , http-types
