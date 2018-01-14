@@ -159,5 +159,5 @@ esacField :: GenParser Char st (String, String)
 esacField = do
   name <- manyTill (noneOf "[]") (lookAhead . char $ '[')
   content <- between (char '[') (char ']') (many $ noneOf "[]")
-  endOfLine
+  many space
   return (name, content)
