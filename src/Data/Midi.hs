@@ -1,7 +1,13 @@
 module Data.Midi
   where
 
-data MidiNote = MidiNote {
+data MidiNote =
+  MidiNote {
   pitch :: Int
   , duration :: Float
-  } deriving (Show)
+  , start :: Float
+  }
+  | MidiPause {
+      duration :: Float
+      }
+  deriving (Show)

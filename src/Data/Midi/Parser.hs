@@ -77,7 +77,7 @@ esacNotesFromMidi baseSound octave midiNotes@(baseNote:_) = let
 
 -- Take arbitrary base octave (EsacNote octave is relative to this value) and base sound and create EsacNote from MidiNote
 makeEsacNote :: Int -> Sound -> MidiNote -> EsacNote
-makeEsacNote octave base@(Sound baseSound pmod) (MidiNote pit dur) = let
+makeEsacNote octave base@(Sound baseSound pmod) (MidiNote pit dur _) = let
   noteNumAtBase = pit - halftones base
   noteOctave = div noteNumAtBase 12
   noteNum = mod noteNumAtBase 12
@@ -90,7 +90,7 @@ midiNotesFromTrack ticks notes = let
   midiNotes = fmap scaleDuration $ evalState (parseMidiNotes notes) $ TrackState 0 Map.empty
   in midiNotes
   where
-    scaleDuration n@(MidiNote _ dur) = n { M.duration = dur / (fromIntegral ticks) }
+    scaleDuration n@(MidiNote _ dur _) = n { M.duration = dur / (fromIntegral ticks) }
 
 parseMidiNotes :: Track Ticks -> S.State TrackState [MidiNote]
 parseMidiNotes (((offset, (NoteOn _ k v))) : notes) = do
@@ -103,7 +103,7 @@ parseMidiNotes (((offset, (NoteOff _ k v))) : notes) = do
   (Just t0) <- gets (Map.lookup k . activeNotes)
   put $ s { activeNotes = Map.delete k (activeNotes s), time = t }
   rest <- parseMidiNotes notes
-  return $ (MidiNote k (fromIntegral $ t - t0)) : rest
+  return $ (MidiNote k (fromIntegral $ t - t0) 0) : rest
 parseMidiNotes _ = return []
 
 isNote (NoteOn _ _ _) = True

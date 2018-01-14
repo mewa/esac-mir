@@ -28,25 +28,37 @@ makeTrack baseDuration notes = let
   in track
 
 makeNote :: Ticks -> MidiNote -> Track Ticks
+makeNote _ (MidiPause _) = []
 makeNote baseDuration note = let
   dur = round $ (fromIntegral $ baseDuration) * M.duration note
-  in [(0, NoteOn 0 (pitch note) 40)
+  start = round $ (fromIntegral $ baseDuration) * M.start note
+  in [(start, NoteOn 0 (pitch note) 40)
      , (dur, NoteOff 0 (pitch note) 40)]
 
 makeTempo :: Tempo -> (Ticks, Message)
 makeTempo tempo = (0, TempoChange (floor $ 1000000.0 / (fromIntegral tempo / 60.0)))
 
 midiNotes :: Esac -> Int -> [MidiNote]
-midiNotes esac octave = fmap (mkMidiNote (baseSound . esacKey $ esac) octave) $ notes esac
+midiNotes esac octave = foldPauses . fmap (mkMidiNote (baseSound . esacKey $ esac) octave) $ notes esac
+
+foldPauses = foldr foldPause []
+  where
+    foldPause (MidiPause dur) (e:es) = addPause e dur : es
+    foldPause e [] = [e]
+    foldPause e l = e : l
+    addPause e@(MidiPause dur) pause = e { M.duration = dur + pause }
+    addPause e pause = e { start = M.start e + pause }
 
 mkMidiNote :: Sound -> Int -> EsacNote -> MidiNote
-mkMidiNote base baseOctave note = let
-  intSnd@(Sound esacSound pm) = addInterval base (interval note)
-  baseSound = halftones base
-  noteHalftones = addMod (intervalHalftones (interval note)) $ sharpness note
-  octave = baseOctave + E.octave note
-  pitch = (octave * 12) + baseSound + noteHalftones
-  in MidiNote pitch (E.duration note)
+mkMidiNote base baseOctave note = case interval note of
+  Interval 0 -> MidiPause $ E.duration note
+  _ -> let
+    intSnd@(Sound esacSound pm) = addInterval base (interval note)
+    baseSound = halftones base
+    noteHalftones = addMod (intervalHalftones (interval note)) $ sharpness note
+    octave = baseOctave + E.octave note
+    pitch = (octave * 12) + baseSound + noteHalftones
+    in MidiNote pitch (E.duration note) 0
 
 midiBytes = toLazyByteString . buildMidi
   
