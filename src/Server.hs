@@ -23,13 +23,26 @@ import Debug.Trace
 import qualified Data.ByteString.Base64.URL.Lazy as Base64
 import qualified Data.Map as Map
 
+defaultParam :: (Parsable a) => TL.Text -> a -> ActionM a
+defaultParam name value = rescue (param name) (const $ return value)
+
 serve :: Int -> IO ()
 serve port = scotty port $ do
   post "/esac2midi" $ do
-    tempo <- rescue (param "tempo") (const $ return 90) :: ActionM Int
-    octave <- rescue (param "octave") (const $ return 5) :: ActionM Int
-    format <- rescue (param "format") (const $ return "") :: ActionM String
-    esac <- jsonData :: ActionM EsacJson
+    tempo <- defaultParam "tempo" 90
+    octave <- defaultParam "octave" 5
+    format <- defaultParam "format" "" :: ActionM String
+    shouldParse <- defaultParam "parse" "" :: ActionM String
+    esac <- case length shouldParse of
+      0 -> jsonData :: ActionM EsacJson
+      _ -> do
+        e <- fmap (LC.unpack . fileContent . snd . head) files
+        case parse parseRawEsac "Invalid raw ESAC" e of
+          Left e -> do
+            status badRequest400
+            text . TL.pack . show $ e
+            finish
+          Right e -> return e
     liftIO $ print esac
     case esacFromJson esac of
       Right m -> do
@@ -44,7 +57,7 @@ serve port = scotty port $ do
     (_, bytes) <- fmap head files
     (Just baseSound) <- fmap readSound $ rescue (param "key") (const $ return "C") :: ActionM (Maybe Sound)
     let res = do
-          esac <- trace (show baseSound) esacFromMidiBytes baseSound 90 4 . fileContent $ bytes
+          esac <- trace (show baseSound) esacFromMidiBytes baseSound 90 5 . fileContent $ bytes
           return $ esacToJson esac
     case res of
       Left e -> do
