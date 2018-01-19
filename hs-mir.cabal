@@ -35,6 +35,7 @@ library
                      , parsec
                      , scotty
                      , text
+                     , transformers >= 0.5.2.0
                      , wai-extra
   default-language:    Haskell2010
 
