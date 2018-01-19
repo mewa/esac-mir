@@ -27,6 +27,7 @@ import qualified Data.Map as Map
 import qualified Storage.Db as Db
 import Database.MongoDB (Pipe, cast, Document, Value, val)
 import Control.Monad.Except
+import Text.Read (readMaybe)
 
 defaultParam :: (Parsable a) => TL.Text -> a -> ActionM a
 defaultParam name value = rescue (param name) (const $ return value)
@@ -37,6 +38,10 @@ readEsac = do
   case length shouldParse of
     0 -> jsonData :: ActionM EsacJson
     _ -> do
+      len <- fmap length files
+      when (len == 0) $ do
+        status badRequest400
+        finish
       e <- fmap (LC.unpack . fileContent . snd . head) files
       case parse parseRawEsac "Invalid raw ESAC" e of
         Left e -> do
@@ -102,8 +107,10 @@ server port pipe = scotty port $ do
 
 getEsac url pipe = get url $ do
   id <- param "id"
-  liftIO . putStrLn $ "GET ESAC " ++ id
-  esac <- Db.run pipe $ Db.getEsac $ read id
+  liftIO $ putStrLn $ "GET ESAC " ++ id
+  let oid = readMaybe id
+  oid <- justOrTerminate oid
+  esac <- Db.run pipe $ Db.getEsac $ oid
   esac <- justOrTerminate esac
   json esac
 
@@ -116,19 +123,23 @@ addEsac url pipe = put url $ do
   liftIO . putStrLn $ "PUT new ESAC"
   esac <- readEsac
   id <- Db.run pipe $ Db.addEsac esac
-  json $ Map.fromList [ ("id" :: T.Text, TL.pack . show $ id)]
+  json $ Map.fromList [("id" :: T.Text, TL.pack . show $ id)]
 
 updateEsac url pipe = patch url $ do
   id <- param "id"
   liftIO . putStrLn $ "PATCH ESAC " ++ id
   esac <- readEsac
-  id <- Db.run pipe $ Db.updateEsac (read id) esac
+  let oid = readMaybe id
+  oid <- justOrTerminate oid
+  Db.run pipe $ Db.updateEsac oid esac
   json ()
 
 deleteEsac url pipe = delete url $ do
   id <- param "id"
   liftIO . putStrLn $ "DELETE ESAC " ++ id
-  Db.run pipe $ Db.removeEsac $ read id
+  let oid = readMaybe id
+  oid <- justOrTerminate oid
+  Db.run pipe $ Db.removeEsac oid
   json ()
 
 base64midi = mappend "data:audio/midi;base64," . Base64.encode
