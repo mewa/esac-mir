@@ -3,6 +3,7 @@ module Storage.Db
 where
 
 import Data.Esac
+import qualified Data.HashMap.Lazy as HashMap
 import qualified Data.Map.Strict as Map
 import Database.MongoDB
 import Data.Bson
@@ -39,24 +40,30 @@ computedEsacBson esac = let
   melody_rhythm = filter (not . isPitchMod) . fmap eraseNote . melody $ esac
   in [field_melodyRaw =: melody_raw, field_melodyRhythm =: melody_rhythm] ++ esacBson esac
 
-esacJson :: Document -> EsacJson
-esacJson doc = defaultEsacJson {
-  name = at "name" doc
-  , title = at "title" doc
-  , source = at "source" doc
-  , region = at "region" doc
-  , signature = at "signature" doc
-  , key = at "key" doc
-  , melody = at "melody" doc
-  , remarks = at "remarks" doc
-  }
+type EsacJsonId = Aeson.Value
+
+esacJson :: Document -> EsacJsonId
+esacJson doc = let
+  esac = defaultEsacJson {
+    name = at "name" doc
+    , title = at "title" doc
+    , source = at "source" doc
+    , region = at "region" doc
+    , signature = at "signature" doc
+    , key = at "key" doc
+    , melody = at "melody" doc
+    , remarks = at "remarks" doc
+    }
+  id = at "_id" doc :: ObjectId
+  (Aeson.Object json) = Aeson.toJSON esac
+  in Aeson.Object $ HashMap.insert "id" (Aeson.String . T.pack $ show id) json
 
 jsonAction d = fmap (fmap esacJson) d
 
-getEsacs :: (MonadIO m) => Action m [EsacJson]
+getEsacs :: (MonadIO m) => Action m [EsacJsonId]
 getEsacs = jsonAction $ find (select [] collection_esacs) >>= rest
 
-getEsac :: (MonadIO m) => ObjectId -> Action m (Maybe EsacJson)
+getEsac :: (MonadIO m) => ObjectId -> Action m (Maybe EsacJsonId)
 getEsac id = jsonAction $ findOne (select ["_id" =: id] collection_esacs)
 
 addEsac :: (MonadIO m) => EsacJson -> Action m Value
