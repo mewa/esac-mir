@@ -73,7 +73,7 @@ removeEsac :: (MonadIO m) => ObjectId -> Action m ()
 removeEsac id = delete $ select ["_id" =: id] collection_esacs
 
 updateEsac :: (MonadIO m) => ObjectId -> EsacJson -> Action m ()
-updateEsac id esac = modify (select ["_id" =: id] collection_esacs) $ computedEsacBson esac
+updateEsac id esac = replace (select ["_id" =: id] collection_esacs) $ computedEsacBson esac
 
 findMelody :: (MonadIO m) => T.Text -> Action m [Document]
 findMelody pattern = rest =<< find (select [field_melody =: Regex pattern ""] collection_esacs)
