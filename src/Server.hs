@@ -22,7 +22,7 @@ import Codec.Midi
 import Network.HTTP.Types.Status
 import Network.Wai.Parse
 import Debug.Trace
-import qualified Data.ByteString.Base64.URL.Lazy as Base64
+import qualified Data.ByteString.Base64.Lazy as Base64
 import qualified Data.Map as Map
 import qualified Storage.Db as Db
 import Database.MongoDB (Pipe, cast, Document, Value, val)
