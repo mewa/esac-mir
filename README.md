@@ -49,7 +49,7 @@ In addition to the properties defined by the `ESAC JSON` format, the `ESAC-Id JS
 
 ## API methods
 
-#### Get ESAC record by id
+### Get ESAC record by id
 
 | method | url         |
 |--------|-------------|
@@ -64,7 +64,7 @@ In addition to the properties defined by the `ESAC JSON` format, the `ESAC-Id JS
 |-----------------------|
 | `ESAC-Id JSON` object |
 
-#### Get ESAC records list
+### Get ESAC records list
 
 | method | url          |
 |--------|--------------|
@@ -74,7 +74,7 @@ In addition to the properties defined by the `ESAC JSON` format, the `ESAC-Id JS
 |--------------------------------------|
 | JSON array of `ESAC-Id JSON` objects |
 
-#### Search for ESACs matching filters
+### Search for ESACs matching filters
 
 | method | url            |
 |--------|----------------|
@@ -148,9 +148,9 @@ In addition to the properties defined by the `ESAC JSON` format, the `ESAC-Id JS
 | tempo     | BPM in resulting MIDI file, default is `90`                                | yes      |
 | octave    | base octave of ESAC intervals, default is `5`                              | yes      |
 
-| request body                                        | response                                     |
-|-----------------------------------------------------|----------------------------------------------|
-| `ESAC JSON` (or ESAC file, when `parse` is specified` | `MIDI JSON` (or MIDI file, when `format=file`) |
+| request body                                          | response                                       |
+|-------------------------------------------------------|------------------------------------------------|
+| `ESAC JSON` (or ESAC file, when `parse` is specified) | `MIDI JSON` (or MIDI file, when `format=file`) |
 
 ### Convert MIDI to ESAC
 
