@@ -21,6 +21,25 @@ In addition to the properties defined by the `ESAC JSON` format, the `ESAC-Id JS
 |----------|--------|
 | id       | String |
 
+### ESAC Filter format
+
+| property | type   |
+|----------|--------|
+| field    | String |
+| term     | String |
+
+`field` can take the following values:
+* `name`
+* `title`
+* `source`
+* `region`
+* `signature`
+* `key`
+* `melody`
+* `melody_raw`
+* `melody_rhythm`
+* `remarks`
+
 ### MIDI JSON format
 `MIDI JSON` format is a JSON object representing a MIDI file.
 
@@ -54,6 +73,17 @@ In addition to the properties defined by the `ESAC JSON` format, the `ESAC-Id JS
 | response                             |
 |--------------------------------------|
 | JSON array of `ESAC-Id JSON` objects |
+
+#### Search for ESACs matching filters
+
+| method | url            |
+|--------|----------------|
+| POST   | `/esac/search` |
+
+| request body                        | response                             |
+|-------------------------------------|--------------------------------------|
+| JSON array of `ESAC Filter` objects | JSON array of `ESAC-Id JSON` objects |
+
 
 ### Add ESAC record
 
