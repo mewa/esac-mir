@@ -67,6 +67,7 @@ server port pipe = scotty port $ do
   addEsac "/esac" pipe
   updateEsac "/esac/:id" pipe
   deleteEsac "/esac/:id" pipe
+  findEsac "/esac/search" pipe
 
   post "/esac2midi" $ do
     tempo <- defaultParam "tempo" 90
@@ -141,6 +142,12 @@ deleteEsac url pipe = delete url $ do
   oid <- justOrTerminate oid
   Db.run pipe $ Db.removeEsac oid
   json ()
+
+findEsac url pipe = post url $ do
+  filters <- jsonData :: ActionM [Db.EsacFilter]
+  liftIO . putStrLn $ "POST search ESAC with: " ++ show filters
+  results <- Db.run pipe $ Db.findEsac filters
+  json results
 
 base64midi = mappend "data:audio/midi;base64," . Base64.encode
 

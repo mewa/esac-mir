@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Storage.Db
 where
@@ -11,6 +12,15 @@ import qualified Data.Aeson as Aeson
 import qualified Data.Text as T
 import Data.Char
 import Control.Monad.IO.Class
+import Data.Aeson (FromJSON)
+import GHC.Generics
+
+data EsacFilter = EsacFilter {
+  field :: T.Text
+  , term :: T.Text
+  } deriving (Generic, Show)
+
+instance FromJSON EsacFilter
 
 run pipe action = access pipe master "esacdb" action
 
@@ -75,11 +85,20 @@ removeEsac id = delete $ select ["_id" =: id] collection_esacs
 updateEsac :: (MonadIO m) => ObjectId -> EsacJson -> Action m ()
 updateEsac id esac = replace (select ["_id" =: id] collection_esacs) $ computedEsacBson esac
 
-findMelody :: (MonadIO m) => T.Text -> Action m [Document]
-findMelody pattern = rest =<< find (select [field_melody =: Regex pattern ""] collection_esacs)
+findEsac :: (MonadIO m) => [EsacFilter] -> Action m [EsacJsonId]
+findEsac filters = jsonAction $ find (select (foldl makeFilter [] filters) collection_esacs) >>= rest
 
-findMelodyRaw :: (MonadIO m) => T.Text -> Action m [Document]
-findMelodyRaw pattern = rest =<< find (select [field_melodyRaw =: Regex pattern ""] collection_esacs)
+makeFilter :: Document -> EsacFilter -> Document
+makeFilter acc f = let
+  label = field f
+  regex = Regex (escape $ term f) ""
+  in (label =: regex) : acc
 
-findMelodyRhythm :: (MonadIO m) => T.Text -> Action m [Document]
-findMelodyRhythm pattern = rest =<< find (select [field_melodyRhythm =: Regex pattern "*m*"] collection_esacs)
+escape s = T.concatMap escapeChar s
+
+escapeChar c = case c of
+  '\\' -> T.pack $ '\\' : c : []
+  '.' -> T.pack $ '\\' : c : []
+  '^' -> T.pack $ '\\' : c : []
+  '$' -> T.pack $ '\\' : c : []
+  _ -> T.pack $ c : []
