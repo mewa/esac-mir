@@ -40,7 +40,7 @@ esacFromMidiBytes baseSound tempo octave midiData = do
       esacNotes = esacNotesFromMidi baseSound octave midiNotes
       signature = makeSignature baseSound metre shortest esacNotes
       metre = (3 % 4)
-  return $ Esac (EsacKey signature shortest baseSound metre) esacNotes
+  return $ Esac (EsacKey signature shortest baseSound metre) . fmap EsacSound $ esacNotes
 
 makeSignature :: Sound -> Ratio Int -> Note -> [EsacNote] -> String
 makeSignature (Sound baseSound mod) metre (Note val) esacNotes = let

@@ -28,7 +28,7 @@ esacMelodyJson melody key = defaultEsacJson { melody = melody, key = key }
 
 data Esac = Esac {
   esacKey :: EsacKey
-  , notes :: [EsacNote]
+  , notes :: [EsacSound]
   } deriving (Show)
 
 data EsacKey = EsacKey {
@@ -38,11 +38,19 @@ data EsacKey = EsacKey {
   , metre :: Ratio Int
   } deriving (Show)
 
+data EsacSound = EsacSound EsacNote | EsacTuplet Tuplet
+  deriving (Show)
+
 data EsacNote = EsacNote {
   octave :: Int
   , interval :: Interval
   , sharpness :: PitchMod
   , duration :: Float
+  } deriving (Show, Eq)
+
+data Tuplet = Tuplet {
+  order :: Int
+  , content :: [EsacNote]
   } deriving (Show, Eq)
 
 data Interval = Interval Int

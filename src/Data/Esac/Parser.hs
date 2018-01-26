@@ -63,17 +63,23 @@ readSound _ = Nothing
 {-
 melody parsing (MEL)
 -}
-parseMelody :: GenParser Char st [EsacNote]
+parseMelody :: GenParser Char st [EsacSound]
 parseMelody = do
   (try $ do
       string " //"
       eof
       return [])
     <|> (do
-            note <- (try (many space) >> parseNote)
-                    <|> parseNote
+            note <- (fmap EsacSound $ try (many space) >> parseNote)
+                    <|> (fmap EsacSound $ try parseNote)
+                    <|> parseTuplet
             notes <- parseMelody
             return $ note : notes)
+
+parseTuplet :: GenParser Char st EsacSound
+parseTuplet = do
+  notes <- between (char '(') (char ')') $ many1 parseNote
+  return . EsacTuplet $ Tuplet (length notes) notes
 
 parseNote :: GenParser Char st EsacNote
 parseNote = do

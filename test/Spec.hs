@@ -47,6 +47,8 @@ esacParser = describe "ESAC parser" $ do
               melody = parse parseMelody "test err" esacMel
           in melody `shouldSatisfy` isLeft
 
+    context "parses tuplets" tupletParser
+
   context "raw ESAC parser" $ do
     it "parses example esac" $ do
       let rawEsac = "KOLBERG\n"
@@ -68,6 +70,13 @@ esacParser = describe "ESAC parser" $ do
             ++ "    5_3_3_  4_2_2_  131__ //"
           }
 
+tupletParser = do
+  it "parses triplet" $ do
+    let triplet = "(123) //"
+    case parse parseMelody "" triplet of
+      Left err -> error $ show err
+      Right [(EsacTuplet (Tuplet k notes))] -> k === 3
+
 soundOps = describe "Sound interval" $ do
   it "creates C interval" $ do
     let baseSound = Sound C None
@@ -88,25 +97,37 @@ soundOps = describe "Sound interval" $ do
         in fullInt `shouldBe` expectedInt
 
 midiConverter = describe "ESAC-MIDI converter" $ do
-    it "MIDI -> ESAC -> MIDI = identity" $ do
-      forAll (listOf1 $ choose (1, (7 :: Int))) $
-        \melodyNotes ->
-          let melody = (concat (fmap show melodyNotes)) ++ " //"
-              key = "10101a 04 C  3/4"
+  context "ESAC triplets -> MIDI" esacMidiTriplets
+  it "MIDI -> ESAC -> MIDI = identity" $ do
+    forAll (listOf1 $ choose (1, (7 :: Int))) $
+      \melodyNotes ->
+        let melody = (concat (fmap show melodyNotes)) ++ " //"
+            key = "10101a 04 C  3/4"
 
-              -- create example ESAC
-              (Right exampleEsac) = do
-                mel <- parse parseMelody "Invalid melody (MEL)" $ melody
-                key <- parse parseKey "Invalid key (KEY)" $ key
-                return $ Esac key mel
+            -- create example ESAC
+            (Right exampleEsac) = do
+              mel <- parse parseMelody "Invalid melody (MEL)" $ melody
+              key <- parse parseKey "Invalid key (KEY)" $ key
+              return $ Esac key mel
 
-              -- create example midi
-              exampleMidi = runReader (midiFromEsac 90 5) $ exampleEsac
+            -- create example midi
+            exampleMidi = runReader (midiFromEsac 90 5) $ exampleEsac
 
-              -- get converted Esac from example midi
-              (Right convertedEsac) = esacFromMidiBytes (Sound C None) 90 5 $ midiBytes exampleMidi
+            -- get converted Esac from example midi
+            (Right convertedEsac) = esacFromMidiBytes (Sound C None) 90 5 $ midiBytes exampleMidi
 
-              -- get Midi from converted esac
-              newMidi = runReader (midiFromEsac 90 5) convertedEsac
+            -- get Midi from converted esac
+            newMidi = runReader (midiFromEsac 90 5) convertedEsac
               
-          in tracks exampleMidi === tracks newMidi
+        in tracks exampleMidi === tracks newMidi
+
+esacMidiTriplets = do
+  it "converts ESAC with triplets" $ do
+    let key = "10101a 04 C  3/4"
+        mel = "123(666) //"
+        (Right esac) = do
+          mel <- parse parseMelody "Invalid melody (MEL)" $ mel
+          key <- parse parseKey "Invalid key (KEY)" $ key
+          return $ Esac key mel
+        midi = runReader (midiFromEsac 90 5) $ esac
+    midi === midi

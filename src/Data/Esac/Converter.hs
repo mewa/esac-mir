@@ -5,6 +5,7 @@ import Codec.Midi
 import Codec.ByteString.Builder
 import Data.Aeson
 import Data.Esac as E
+import Data.Ratio
 import Data.Esac.Parser as E
 import Data.Midi as M
 import Control.Monad.Reader
@@ -39,7 +40,7 @@ makeTempo :: Tempo -> (Ticks, Message)
 makeTempo tempo = (0, TempoChange (floor $ 1000000.0 / (fromIntegral tempo / 60.0)))
 
 midiNotes :: Esac -> Int -> [MidiNote]
-midiNotes esac octave = foldPauses . fmap (mkMidiNote (baseSound . esacKey $ esac) octave) $ notes esac
+midiNotes esac octave = foldPauses . fmap (mkMidiNote (baseSound . esacKey $ esac) octave) . foldTuplets esac $ notes esac
 
 foldPauses = foldr foldPause []
   where
@@ -48,6 +49,12 @@ foldPauses = foldr foldPause []
     foldPause e l = e : l
     addPause e@(MidiPause dur) pause = e { M.duration = dur + pause }
     addPause e pause = e { start = M.start e + pause }
+
+foldTuplets esac = foldr foldTuplet []
+  where
+    foldTuplet (EsacTuplet t) e = makeTuplet t ++ e
+    foldTuplet (EsacSound e) l = e : l
+    makeTuplet (Tuplet k notes) = notes
 
 mkMidiNote :: Sound -> Int -> EsacNote -> MidiNote
 mkMidiNote base baseOctave note = case interval note of
@@ -76,9 +83,11 @@ esacFromJson json = do
 -- ESAC -> String
 -- ********************
 
-esacMelody :: [EsacNote] -> String
-esacMelody = (++ " //") . join . fmap showEsacNote
+esacMelody :: [EsacSound] -> String
+esacMelody = (++ " //") . join . fmap showEsacMelody
   where
+    showEsacMelody (EsacSound n) = showEsacNote n
+    showEsacMelody (EsacTuplet (Tuplet k t)) = ('(' :) . (++ ")") . join . fmap showEsacNote $ t
     showEsacNote (EsacNote oct (Interval interval) sh dur) = let
       octave = if oct < 0 then
               replicate (-oct) '-'
