@@ -158,7 +158,7 @@ parseRawEsac = do
     , signature = getField "SIG"
     , E.key = getField "KEY"
     , melody = getField "MEL"
-    , remarks = getField "REM"
+    , remarks = getField "BEM"
     }
 
 esacField :: GenParser Char st (String, String)
