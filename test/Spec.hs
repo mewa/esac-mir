@@ -8,10 +8,13 @@ import Data.Midi.Parser
 import Codec.Midi
 import Data.Midi
 import Data.Either
+import Storage.Db
+import Data.Bson
 
 main :: IO ()
 main = hspec $ do
   esacParser
+  esacMelodyRaw
   soundOps
   midiConverter
 
@@ -69,6 +72,20 @@ esacParser = describe "ESAC parser" $ do
           , melody = "5_3_3_  4_2_2_  135__\n"
             ++ "    5_3_3_  4_2_2_  131__ //"
           }
+
+esacMelodyRaw = do
+  context "derived EsAC properties" $ do
+    context "melody_raw" $ do
+      it "parses pitch mods" $ do
+        let esac = defaultEsacJson { melody = "-12+3--4b++5#" }
+            result = "-12+3--4b++5#"
+            computed = computedEsacBson esac
+          in at field_melodyRaw computed === result
+      it "discards rhythm" $ do
+        let esac = defaultEsacJson { melody = "1.2__.34_5" }
+            result = "12345"
+            computed = computedEsacBson esac
+          in at field_melodyRaw computed === result
 
 tupletParser = do
   it "parses triplet" $ do

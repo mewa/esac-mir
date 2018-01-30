@@ -53,6 +53,7 @@ test-suite hs-mir-test
   hs-source-dirs:      test
   main-is:             Spec.hs
   build-depends:       base
+                     , bson
                      , mtl
                      , hs-mir
                      , HCodecs
