@@ -101,4 +101,5 @@ escapeChar c = case c of
   '.' -> T.pack $ '\\' : c : []
   '^' -> T.pack $ '\\' : c : []
   '$' -> T.pack $ '\\' : c : []
+  '+' -> T.pack $ '\\' : c : []
   _ -> T.pack $ c : []
