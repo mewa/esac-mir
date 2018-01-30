@@ -91,7 +91,7 @@ findEsac filters = jsonAction $ find (select (foldl makeFilter [] filters) colle
 makeFilter :: Document -> EsacFilter -> Document
 makeFilter acc f = let
   label = field f
-  regex = Regex (escape $ term f) ""
+  regex = Regex (escape $ term f) "im"
   in (label =: regex) : acc
 
 escape s = T.concatMap escapeChar s
