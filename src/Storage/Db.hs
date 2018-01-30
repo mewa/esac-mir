@@ -41,7 +41,7 @@ esacBson esac = let
 
 computedEsacBson :: EsacJson -> Document
 computedEsacBson esac = let
-  isPitchMod c = c == '#' || c == 'b'
+  isPitchMod c = c == '-' || c == '+' || c == '#' || c == 'b'
   isNote c = isDigit c || isPitchMod c
   eraseNote c = if isDigit c
     then 'x'
